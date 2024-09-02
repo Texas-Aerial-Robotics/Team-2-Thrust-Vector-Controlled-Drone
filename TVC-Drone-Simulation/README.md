@@ -1,6 +1,6 @@
 # TAR-Team-2 Thrust Vector Controlled Drone
 
-Contributors: Joshua Caratao, Abhirit Das
+### Contributors: Joshua Caratao, Abhirit Das
 
 These are the Matlab Simulink Simulation Files for Texas Aerial Robotics Team 2 DART Project. This project involves a Thrust Vector Controlled Vehicle that will be deployed and dropped by a Quadcopter and safely land, autonomosly, on the ground.
 
