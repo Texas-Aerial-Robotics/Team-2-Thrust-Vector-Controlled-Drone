@@ -1,4 +1,7 @@
-#CAD Files for Thrust-Vector Controlled Drone
+# CAD Files for Thrust-Vector Controlled Drone
+Editors: Joshua Caratao
+
+All parts are currently in STEP or Solidworks Format
 
 ![image](https://github.com/user-attachments/assets/671365e4-eb9f-4c4e-b3c2-1ab50c81c201)
 
