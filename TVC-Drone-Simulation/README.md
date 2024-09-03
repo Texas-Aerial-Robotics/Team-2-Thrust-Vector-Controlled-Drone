@@ -1,4 +1,4 @@
-# TAR-Team-2 Thrust Vector Controlled Drone
+# TAR-Team-2 TVC Drone Simulation Model
 
 ### Contributors: Joshua Caratao, Abhirit Das
 
