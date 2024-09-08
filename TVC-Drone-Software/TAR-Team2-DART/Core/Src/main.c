@@ -19,94 +19,102 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
-
-I2C_HandleTypeDef hi2c1;
-
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MPU_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_I2C1_Init(void);
-/* USER CODE BEGIN PFP */
 
-/* USER CODE END PFP */
 
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
+// Define I2C handler
+I2C_HandleTypeDef hi2c1;
 
-/* USER CODE END 0 */
 
-/**
-  * @brief  The application entry point.
-  * @retval int
-  */
+//global variables
+#define MPU6050_ADDR 0x68
+
+typedef struct {
+    int16_t Accel_X;
+    int16_t Accel_Y;
+    int16_t Accel_Z;
+    int16_t Gyro_X;
+    int16_t Gyro_Y;
+    int16_t Gyro_Z;
+} MPU6050_Data;
+
+
+void MX_I2C1_Init(void) {
+  	//MPU6050 initialization
+	hi2c1.Instance = I2C1;
+	hi2c1.Init.OwnAddress1 = 0;
+	hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+	hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+	hi2c1.Init.OwnAddress2 = 0;
+	hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+	hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+	if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+	{
+		Error_Handler();
+	}
+}
+
+// Function to write to MPU6050 register
+void MPU6050_Write(uint8_t reg, uint8_t data)
+{
+    HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR, reg, 1, &data, 1, HAL_MAX_DELAY);
+}
+
+// Function to read from MPU6050 register
+void MPU6050_Read(uint8_t reg, uint8_t *buffer, uint16_t size)
+{
+    HAL_I2C_Mem_Read(&hi2c1, MPU6050_ADDR, reg, 1, buffer, size, HAL_MAX_DELAY);
+}
+
+void MPU6050_Init(void)
+{
+    // Wake up the MPU6050
+    MPU6050_Write(0x6B, 0x00);  // Write 0 to PWR_MGMT_1 to wake up the MPU6050
+}
+
+void MPU6050_Read_All(MPU6050_Data *data)
+{
+    uint8_t buffer[14];
+    MPU6050_Read(0x3B, buffer, 14);  // Read 14 bytes starting from ACCEL_XOUT_H
+
+    // Accelerometer values
+    data->Accel_X = (int16_t)(buffer[0] << 8 | buffer[1]);
+    data->Accel_Y = (int16_t)(buffer[2] << 8 | buffer[3]);
+    data->Accel_Z = (int16_t)(buffer[4] << 8 | buffer[5]);
+
+    // Gyroscope values
+    data->Gyro_X = (int16_t)(buffer[8] << 8 | buffer[9]);
+    data->Gyro_Y = (int16_t)(buffer[10] << 8 | buffer[11]);
+    data->Gyro_Z = (int16_t)(buffer[12] << 8 | buffer[13]);
+}
+
+
 int main(void)
 {
-
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
-  /* MPU Configuration--------------------------------------------------------*/
   MPU_Config();
-
-  /* MCU Configuration--------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
-
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
   SystemClock_Config();
-
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_I2C1_Init();
-  /* USER CODE BEGIN 2 */
 
-  /* USER CODE END 2 */
+  MPU6050_Init();
+  MPU6050_Data sensor_data;
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+  MX_I2C1_Init();	//initialize I2C1 connection
+
   while (1)
   {
-    /* USER CODE END WHILE */
+	  //LED TEST: toggle pin PA5
+	  //HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+	  //HAL_Delay(100);
 
-    /* USER CODE BEGIN 3 */
+	  // Read accelerometer and gyroscope data
+	  MPU6050_Read_All(&sensor_data);
+
+	  HAL_Delay(500);
   }
-  /* USER CODE END 3 */
 }
 
 /**
@@ -149,7 +157,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV1;
   RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV1;
 
@@ -157,54 +165,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief I2C1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_I2C1_Init(void)
-{
-
-  /* USER CODE BEGIN I2C1_Init 0 */
-
-  /* USER CODE END I2C1_Init 0 */
-
-  /* USER CODE BEGIN I2C1_Init 1 */
-
-  /* USER CODE END I2C1_Init 1 */
-  hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x00300F38;
-  hi2c1.Init.OwnAddress1 = 0;
-  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c1.Init.OwnAddress2 = 0;
-  hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Analogue filter
-  */
-  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Digital filter
-  */
-  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN I2C1_Init 2 */
-
-  /* USER CODE END I2C1_Init 2 */
-
 }
 
 /**
@@ -232,13 +192,14 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
+  /*Configure GPIO pins : PB8 PB9 */
+  GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_9;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 }
-
-/* USER CODE BEGIN 4 */
-
-/* USER CODE END 4 */
 
  /* MPU Configuration */
 
